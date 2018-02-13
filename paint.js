@@ -57,12 +57,14 @@
       document.body.addEventListener('keyup', this.stop.bind(this));
     },
     start: function (evt) {
-      var x = this.options.x - this.canvas_coords.left;
-      var y = this.options.y - this.canvas_coords.top;
-      this.ctx.beginPath();
-      this.ctx.moveTo(x/4, y/4);
-      history.saveState(this.canvas);
-      this.drawing = true;
+      if (evt.repeat != true) { 
+        var x = this.options.x - this.canvas_coords.left;
+        var y = this.options.y - this.canvas_coords.top;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x/4, y/4);
+        history.saveState(this.canvas);
+        this.drawing = true;
+      }
     },
     stroke: function (evt) {
       this.options.x = evt.page.x;
