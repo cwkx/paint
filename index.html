@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Canvas undo and redo functionality</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <h1>Canvas pencil, undo, redo</h1>
+  <p>Click the pencil button and draw over the canvas. Use undo and redo buttons to navigate through states.</p>
+  <div id="controllers">
+    <button class="controller" id="undo">undo</button>
+    <button class="controller" id="redo">redo</button>
+    <button class="controller" id="pencil">pencil</button>
+  </div>
+  <canvas width="64" height="64" id="paint"></canvas>
+  <script src='http://ajax.googleapis.com/ajax/libs/mootools/1.4.5/mootools-yui-compressed.js'></script>
+  <script src="paint.js"></script>
+</body>
+
+</html>
