@@ -1,97 +1,116 @@
-(function ($) {
-  var tool;
-  var canvas = $('paint');
-  var ctx = canvas.getContext('2d');
+// setup canvas and context
+var canvas = document.querySelector('canvas');
+var ctx = canvas.getContext('2d');
 
-  var history = {
-    redo_list: [],
-    undo_list: [],
-    saveState: function (canvas, list, keep_redo) {
-      keep_redo = keep_redo || false;
-      if (!keep_redo) {
-        this.redo_list = [];
-      }
+// handle resize events
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
 
-      (list || this.undo_list).push(canvas.toDataURL());
-    },
-    undo: function (canvas, ctx) {
-      this.restoreState(canvas, ctx, this.undo_list, this.redo_list);
-    },
-    redo: function (canvas, ctx) {
-      this.restoreState(canvas, ctx, this.redo_list, this.undo_list);
-    },
-    restoreState: function (canvas, ctx, pop, push) {
-      if (pop.length) {
-        this.saveState(canvas, push, true);
-        var restore_state = pop.pop();
-        var img = new Element('img', { 'src': restore_state });
-        img.onload = function () {
-          ctx.clearRect(0, 0, 64, 64);
-          ctx.drawImage(img, 0, 0, 64, 64, 0, 0, 64, 64);
-        }
-      }
-    }
+window.addEventListener('resize', resizeCanvas, false);
+resizeCanvas();
+
+// states
+var redo_list = [];
+var undo_list = [];
+var drawing = false;
+var lastPos = [0,0];
+
+function bresenham(x0, y0, x1, y1){
+  var pixels = [];
+
+  var dx = Math.abs(x1-x0);
+  var dy = Math.abs(y1-y0);
+  var sx = (x0 < x1) ? 1 : -1;
+  var sy = (y0 < y1) ? 1 : -1;
+  var err = dx-dy;
+
+  while(true){
+    xs.push([x0, y0]);
+
+    if ((x0==x1) && (y0==y1)) break;
+    var e2 = 2*err;
+    if (e2 >-dy){ err -= dy; x0  += sx; }
+    if (e2 < dx){ err += dx; y0  += sy; }
   }
 
-  var pencil = {
-    options: {
-      stroke_color: ['00', '00', '00'],
-      dim: 4,
-      x: 0,
-      y: 0
-    },
-    init: function (canvas, ctx) {
-      this.canvas = canvas;
-      this.canvas_coords = this.canvas.getCoordinates();
-      this.ctx = ctx;
-      this.ctx.strokeColor = this.options.stroke_color;
-      this.drawing = false;
-      this.addCanvasEvents();
-    },
-    addCanvasEvents: function () {
-      this.canvas.addEvent('mousedown', this.start.bind(this));
-      this.canvas.addEvent('mousemove', this.stroke.bind(this));
-      this.canvas.addEvent('mouseup', this.stop.bind(this));
-      this.canvas.addEvent('mouseout', this.stop.bind(this));
-      document.body.addEventListener('keydown', this.start.bind(this));
-      document.body.addEventListener('keyup', this.stop.bind(this));
-    },
-    start: function (evt) {
-      if (evt.repeat != true) { 
-        var x = this.options.x - this.canvas_coords.left;
-        var y = this.options.y - this.canvas_coords.top;
-        this.ctx.beginPath();
-        this.ctx.moveTo(x/4, y/4);
-        history.saveState(this.canvas);
-        this.drawing = true;
-      }
-    },
-    stroke: function (evt) {
-      this.options.x = evt.page.x;
-      this.options.y = evt.page.y;
-      if (this.drawing) {
-        var x = evt.page.x - this.canvas_coords.left;
-        var y = evt.page.y - this.canvas_coords.top;
-        this.ctx.lineTo(x/4, y/4);
-        this.ctx.stroke();
+  return pixels;
+}
 
-      }
-    },
-    stop: function (evt) {
-      if (this.drawing) this.drawing = false;
-    }
-  };
+function  getMousePos(evt) {
+  var rect = canvas.getBoundingClientRect(), // abs. size of element
+      scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for X
+      scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for Y
 
-  $('pencil').addEvent('click', function () {
-    pencil.init(canvas, ctx);
+  return {
+    x: (evt.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
+    y: (evt.clientY - rect.top) * scaleY     // been adjusted to be relative to element
+  }
+}
+
+function drawPixels(pixels) {
+
+  var boundsX = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
+  var boundsY = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
+
+  pixels.forEach(function(e){
+    boundsX[0] = Math.min(boundsX[0], e[0]);
+    boundsX[1] = Math.max(boundsX[1], e[0]);
+    boundsY[0] = Math.min(boundsY[0], e[1]);
+    boundsY[1] = Math.max(boundsY[1], e[1]);
   });
 
-  $('undo').addEvent('click', function () {
-    history.undo(canvas, ctx);
+  var w = boundsX[1]-boundsX[0];
+  var h = boundsY[1]-boundsY[0];
+  // console.log(pixels);
+  // console.log(w);
+  // console.log(h);
+  var id = ctx.createImageData(w, h);
+  var d  = id.data;
+
+  pixels.forEach(function(e){
+    var ind = e[0]*4 + e[1]*w*4;
+    d[ind+0] = 0; // R
+    d[ind+1] = 0; // G
+    d[ind+1] = 0; // B
+    d[ind+1] = 255; // A
   });
 
-  $('redo').addEvent('click', function () {
-    history.redo(canvas, ctx);
-  });
+  ctx.putImageData(id, boundsX[0], boundsY[0]);  
+}
 
-})(document.id)
+document.onkeydown = function (e) {
+  var evt = window.event ? event : e;
+  if (evt.repeat == true)
+    return;
+  if (evt.keyCode == 90 && evt.ctrlKey) {
+    if (evt.shiftKey)
+      redo();
+    else
+      undo();
+  }
+  if (evt.keyCode == 65) {
+
+      var pos = getMousePos(e);
+      console.log(pos);
+      lastPos = [Math.round(pos.x),Math.round(pos.y)];
+      drawPixels([lastPos]);
+      drawing = true;
+  }
+}
+
+document.onkeyup = function (e) {
+  var evt = window.event ? event : e
+  if (evt.keyCode == 65)
+    drawing = false;
+}
+
+document.onmousemove = function(e) {
+  if (drawing) {
+    var pos = getMousePos(e);
+    var pixels = bresenham(lastPos[0], lastPos[1], Math.round(pos[0], Math.round(pos[1])));
+    drawPixels(pixels);
+    lastPos = [Math.round(pos.x),Math.round(pos.y)];
+  }
+}

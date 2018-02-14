@@ -1,14 +1,3 @@
-
-#controllers {
-  width: 600px;
-  font-size: 0.8em;
-  color: #333;
-}
-#paint {
-  border: 1px solid #000;
-  background: #fff;
-  
-}
 canvas {
   image-rendering: optimizeSpeed;             /* Older versions of FF          */
   image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
@@ -16,12 +5,10 @@ canvas {
   image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
   image-rendering: pixelated;                 /* Awesome future-browsers       */
   -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
-  width: 256px; 
-  height: 256px;
+  background: red;
 }
-.controller {
-  display: inline-block;
-  background: #eee;
-  border: 1px solid #e7e7e7;
-  padding: 5px;
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
 }
